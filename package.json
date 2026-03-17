@@ -1,0 +1,16 @@
+{
+  "name": "ediss-a1-bookstore",
+  "version": "1.0.0",
+  "description": "17-647 Assignment A1 bookstore service",
+  "main": "src/app.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "node --watch src/app.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "mysql2": "^3.15.3"
+  }
+}
