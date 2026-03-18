@@ -33,9 +33,6 @@ function isValidCustomerPayload(body) {
     if (body[field] === null || body[field] === undefined) {
       return false;
     }
-    if (typeof body[field] === "string" && body[field].trim() === "") {
-      return false;
-    }
   }
 
   if (hasOwn(body, "address2")) {
@@ -119,7 +116,7 @@ router.post("/", async (req, res, next) => {
 
     return res
       .status(201)
-      .location(`/customers/${result.insertId}`)
+      .location(`${req.protocol}://${req.get("host")}/customers/${result.insertId}`)
       .json(payload);
   } catch (error) {
     next(error);

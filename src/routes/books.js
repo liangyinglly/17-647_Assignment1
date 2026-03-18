@@ -26,6 +26,16 @@ function isValidPrice(value) {
   return /^\d+(\.\d{1,2})?$/.test(raw);
 }
 
+function isValidQuantity(value) {
+  if (typeof value === "number") {
+    return Number.isInteger(value);
+  }
+  if (typeof value === "string") {
+    return /^\d+$/.test(value.trim());
+  }
+  return false;
+}
+
 function isValidBookPayload(body) {
   if (!body || typeof body !== "object" || Array.isArray(body)) {
     return false;
@@ -38,12 +48,9 @@ function isValidBookPayload(body) {
     if (body[field] === null || body[field] === undefined) {
       return false;
     }
-    if (typeof body[field] === "string" && body[field].trim() === "") {
-      return false;
-    }
   }
 
-  return isValidPrice(body.price);
+  return isValidPrice(body.price) && isValidQuantity(body.quantity);
 }
 
 function mapBookRow(row, includeSummary) {
@@ -121,7 +128,9 @@ router.post("/", async (req, res, next) => {
 
     res
       .status(201)
-      .location(`/books/${encodeURIComponent(book.ISBN)}`)
+      .location(
+        `${req.protocol}://${req.get("host")}/books/${encodeURIComponent(book.ISBN)}`
+      )
       .json({
         ISBN: book.ISBN,
         title: book.title,

@@ -7,6 +7,7 @@ const { initSchema } = require("./db");
 const app = express();
 const port = Number(process.env.PORT || 80);
 
+app.set("trust proxy", true);
 app.use(express.json());
 
 app.get("/status", (_req, res) => {
