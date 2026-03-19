@@ -3,6 +3,7 @@ const { pool } = require("../db");
 const { generateBookSummary } = require("../llm");
 
 const router = express.Router();
+const MIN_SUMMARY_LENGTH = 200;
 
 const REQUIRED_BOOK_FIELDS = [
   "ISBN",
@@ -83,6 +84,29 @@ async function updateSummaryAsync(book) {
   } catch (error) {
     console.error("LLM summary update failed:", error.message);
   }
+}
+
+async function ensureSummaryIfNeeded(row) {
+  const existingSummary = row.summary || "";
+  if (existingSummary.length >= MIN_SUMMARY_LENGTH) {
+    return existingSummary;
+  }
+
+  const generated = await generateBookSummary({
+    ISBN: row.ISBN,
+    title: row.title,
+    Author: row.Author,
+    description: row.description,
+    genre: row.genre
+  });
+
+  if (generated && generated.length >= MIN_SUMMARY_LENGTH) {
+    await pool.execute("UPDATE books SET summary = ? WHERE ISBN = ?", [generated, row.ISBN]);
+    row.summary = generated;
+    return generated;
+  }
+
+  return existingSummary;
 }
 
 router.post("/", async (req, res, next) => {
@@ -198,6 +222,7 @@ async function getBook(isbn, res, next) {
     if (rows.length === 0) {
       return res.sendStatus(404);
     }
+    await ensureSummaryIfNeeded(rows[0]);
     return res.status(200).json(mapBookRow(rows[0], true));
   } catch (error) {
     return next(error);
