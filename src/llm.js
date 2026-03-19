@@ -16,7 +16,7 @@ async function generateBookSummary(book) {
 
     const model = process.env.GEMINI_MODEL || "gemini-1.5-flash";
     const prompt = [
-      "Write an approximately 100-word summary for this book.",
+      "Write an approximately 50-word summary for this book.",
       "Return only the summary text.",
       `Title: ${book.title}`,
       `Author: ${book.Author}`,

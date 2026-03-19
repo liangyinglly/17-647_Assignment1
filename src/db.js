@@ -38,6 +38,13 @@ async function initSchema() {
       zipcode VARCHAR(20) NOT NULL
     )
   `);
+
+  // Optional grader mode: start from a clean DB on each service boot.
+  if ((process.env.DB_TRUNCATE_ON_START || "false").toLowerCase() === "true") {
+    await pool.execute("DELETE FROM books");
+    await pool.execute("DELETE FROM customers");
+    await pool.execute("ALTER TABLE customers AUTO_INCREMENT = 1");
+  }
 }
 
 module.exports = {

@@ -49,6 +49,7 @@ DB_USER=root
 DB_PASSWORD=your_db_password
 DB_NAME=bookstore
 DB_AUTO_INIT=true
+DB_TRUNCATE_ON_START=false
 
 LLM_PROVIDER=gemini
 GEMINI_API_KEY=your_gemini_api_key
@@ -56,6 +57,7 @@ GEMINI_MODEL=gemini-2.5-flash
 ```
 
 `DB_AUTO_INIT=true` creates `books` and `customers` tables at startup if missing.
+`DB_TRUNCATE_ON_START=true` clears existing rows on service startup (useful before autograder runs to avoid duplicate-data 422 failures).
 `LLM_PROVIDER=gemini` enables summary generation on `POST /books`.
 
 ## For TA Quick Check
@@ -220,4 +222,3 @@ ALTER TABLE customers AUTO_INCREMENT = 1;
 - Don't commit `.env` or any API keys
 - If a key is ever exposed, revoke/rotate immediately
 - Use `.env.example` for shared configuration template only
-
