@@ -34,7 +34,7 @@ app.use((err, req, res, next) => {
 });
 
 async function start() {
-  if ((process.env.DB_AUTO_INIT || "true").toLowerCase() === "true") {
+  if (process.env.DB_AUTO_INIT === "false") {
     await initSchema();
   }
 
