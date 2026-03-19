@@ -101,28 +101,28 @@ router.post("/", async (req, res, next) => {
       quantity: Number(req.body.quantity)
     };
 
-    const [existing] = await pool.execute("SELECT ISBN FROM books WHERE ISBN = ?", [
-      book.ISBN
-    ]);
-    if (existing.length > 0) {
-      return res
-        .status(422)
-        .json({ message: "This ISBN already exists in the system." });
+    try {
+      await pool.execute(
+        "INSERT INTO books (ISBN, title, Author, description, genre, price, quantity, summary) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        [
+          book.ISBN,
+          book.title,
+          book.Author,
+          book.description,
+          book.genre,
+          book.price,
+          book.quantity,
+          ""
+        ]
+      );
+    } catch (error) {
+      if (error?.code === "ER_DUP_ENTRY") {
+        return res
+          .status(422)
+          .json({ message: "This ISBN already exists in the system." });
+      }
+      throw error;
     }
-
-    await pool.execute(
-      "INSERT INTO books (ISBN, title, Author, description, genre, price, quantity, summary) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-      [
-        book.ISBN,
-        book.title,
-        book.Author,
-        book.description,
-        book.genre,
-        book.price,
-        book.quantity,
-        ""
-      ]
-    );
 
     updateSummaryAsync(book);
 
