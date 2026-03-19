@@ -220,3 +220,4 @@ ALTER TABLE customers AUTO_INCREMENT = 1;
 - Don't commit `.env` or any API keys
 - If a key is ever exposed, revoke/rotate immediately
 - Use `.env.example` for shared configuration template only
+
