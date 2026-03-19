@@ -87,7 +87,10 @@ async function updateSummaryAsync(book) {
 
 router.post("/", async (req, res, next) => {
   try {
+    console.log("Received payload:", req.body); // Log the incoming request payload
+
     if (!isValidBookPayload(req.body)) {
+      console.log("Invalid payload detected."); // Log invalid payload
       return res.status(400).json({ message: "Invalid or missing input." });
     }
 
@@ -102,6 +105,7 @@ router.post("/", async (req, res, next) => {
     };
 
     try {
+      console.log("Attempting to insert book:", book); // Log the book being inserted
       await pool.execute(
         "INSERT INTO books (ISBN, title, Author, description, genre, price, quantity, summary) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
         [
@@ -117,13 +121,16 @@ router.post("/", async (req, res, next) => {
       );
     } catch (error) {
       if (error?.code === "ER_DUP_ENTRY") {
+        console.log("Duplicate entry detected for ISBN:", book.ISBN); // Log duplicate entry
         return res
           .status(422)
           .json({ message: "This ISBN already exists in the system." });
       }
+      console.error("Database error:", error.message); // Log other database errors
       throw error;
     }
 
+    console.log("Book successfully inserted:", book); // Log successful insertion
     updateSummaryAsync(book);
 
     res
@@ -141,6 +148,7 @@ router.post("/", async (req, res, next) => {
         quantity: book.quantity
       });
   } catch (error) {
+    console.error("Unexpected error:", error.message); // Log unexpected errors
     next(error);
   }
 });
