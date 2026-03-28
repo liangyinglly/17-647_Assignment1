@@ -14,3 +14,10 @@ JWT rules:
 - payload `sub` must be one of `starlord`, `gamora`, `drax`, `rocket`, `groot`
 - payload `exp` must exist and be in the future
 - payload `iss` must equal `cmu.edu`
+
+Environment:
+- See `.env.example` for `PORT`, `URL_BASE_BACKEND_SERVICES`, `CUSTOMER_SERVICE_URL`, `BOOK_SERVICE_URL`
+
+Run:
+- `npm install`
+- `npm start`

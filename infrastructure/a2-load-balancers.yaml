@@ -1,0 +1,247 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: A2 load-balancer routing for web/mobile BFFs and backend services.
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: bookstore-a2
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+
+  PublicSubnets:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Public subnets for the external (internet-facing) ALB.
+
+  PrivateSubnets:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Private subnets for the internal ALB.
+
+  ExternalAlbSecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+
+  InternalAlbSecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+
+  WebBffInstanceId:
+    Type: AWS::EC2::Instance::Id
+
+  MobileBffInstanceId:
+    Type: AWS::EC2::Instance::Id
+
+  CustomerServiceInstanceId:
+    Type: AWS::EC2::Instance::Id
+
+  BookServiceInstanceId:
+    Type: AWS::EC2::Instance::Id
+
+Resources:
+  ExternalLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub "${ProjectName}-external-alb"
+      Scheme: internet-facing
+      Type: application
+      SecurityGroups:
+        - !Ref ExternalAlbSecurityGroupId
+      Subnets: !Ref PublicSubnets
+
+  InternalLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub "${ProjectName}-internal-alb"
+      Scheme: internal
+      Type: application
+      SecurityGroups:
+        - !Ref InternalAlbSecurityGroupId
+      Subnets: !Ref PrivateSubnets
+
+  WebBffTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "${ProjectName}-web-bff-tg"
+      VpcId: !Ref VpcId
+      Port: 80
+      Protocol: HTTP
+      TargetType: instance
+      HealthCheckPath: /status
+      Matcher:
+        HttpCode: "200"
+
+  MobileBffTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "${ProjectName}-mobile-bff-tg"
+      VpcId: !Ref VpcId
+      Port: 80
+      Protocol: HTTP
+      TargetType: instance
+      HealthCheckPath: /status
+      Matcher:
+        HttpCode: "200"
+
+  CustomerServiceTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "${ProjectName}-customer-svc-tg"
+      VpcId: !Ref VpcId
+      Port: 3000
+      Protocol: HTTP
+      TargetType: instance
+      HealthCheckPath: /status
+      Matcher:
+        HttpCode: "200"
+
+  BookServiceTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "${ProjectName}-book-svc-tg"
+      VpcId: !Ref VpcId
+      Port: 3000
+      Protocol: HTTP
+      TargetType: instance
+      HealthCheckPath: /status
+      Matcher:
+        HttpCode: "200"
+
+  WebBffTargetAttachment:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroupAttachment
+    Properties:
+      TargetGroupArn: !Ref WebBffTargetGroup
+      TargetId: !Ref WebBffInstanceId
+      Port: 80
+
+  MobileBffTargetAttachment:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroupAttachment
+    Properties:
+      TargetGroupArn: !Ref MobileBffTargetGroup
+      TargetId: !Ref MobileBffInstanceId
+      Port: 80
+
+  CustomerServiceTargetAttachment:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroupAttachment
+    Properties:
+      TargetGroupArn: !Ref CustomerServiceTargetGroup
+      TargetId: !Ref CustomerServiceInstanceId
+      Port: 3000
+
+  BookServiceTargetAttachment:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroupAttachment
+    Properties:
+      TargetGroupArn: !Ref BookServiceTargetGroup
+      TargetId: !Ref BookServiceInstanceId
+      Port: 3000
+
+  ExternalHttpListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ExternalLoadBalancer
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: fixed-response
+          FixedResponseConfig:
+            StatusCode: "400"
+            ContentType: application/json
+            MessageBody: '{"message":"Missing or unsupported X-Client-Type header."}'
+
+  ExternalWebRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref ExternalHttpListener
+      Priority: 10
+      Conditions:
+        - Field: http-header
+          HttpHeaderConfig:
+            HttpHeaderName: X-Client-Type
+            Values:
+              - Web
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref WebBffTargetGroup
+
+  ExternalIosRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref ExternalHttpListener
+      Priority: 20
+      Conditions:
+        - Field: http-header
+          HttpHeaderConfig:
+            HttpHeaderName: X-Client-Type
+            Values:
+              - iOS
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref MobileBffTargetGroup
+
+  ExternalAndroidRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref ExternalHttpListener
+      Priority: 30
+      Conditions:
+        - Field: http-header
+          HttpHeaderConfig:
+            HttpHeaderName: X-Client-Type
+            Values:
+              - Android
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref MobileBffTargetGroup
+
+  InternalHttpListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref InternalLoadBalancer
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: fixed-response
+          FixedResponseConfig:
+            StatusCode: "404"
+            ContentType: application/json
+            MessageBody: '{"message":"No backend route matched."}'
+
+  InternalCustomersRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref InternalHttpListener
+      Priority: 10
+      Conditions:
+        - Field: path-pattern
+          PathPatternConfig:
+            Values:
+              - /customers
+              - /customers/*
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref CustomerServiceTargetGroup
+
+  InternalBooksRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref InternalHttpListener
+      Priority: 20
+      Conditions:
+        - Field: path-pattern
+          PathPatternConfig:
+            Values:
+              - /books
+              - /books/*
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref BookServiceTargetGroup
+
+Outputs:
+  ExternalAlbDnsName:
+    Description: External ALB DNS name for client traffic.
+    Value: !GetAtt ExternalLoadBalancer.DNSName
+
+  InternalAlbDnsName:
+    Description: Internal ALB DNS name for BFF-to-backend traffic.
+    Value: !GetAtt InternalLoadBalancer.DNSName
+
+  BackendServicesBaseUrl:
+    Description: Use this as URL_BASE_BACKEND_SERVICES in both BFFs.
+    Value: !Sub "http://${InternalLoadBalancer.DNSName}"

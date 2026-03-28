@@ -6,7 +6,8 @@
   "type": "commonjs",
   "scripts": {
     "start": "node src/app.js",
-    "dev": "node --watch src/app.js"
+    "dev": "node --watch src/app.js",
+    "smoke:local": "bash scripts/smoke-test-local.sh"
   },
   "dependencies": {
     "dotenv": "^16.6.1",

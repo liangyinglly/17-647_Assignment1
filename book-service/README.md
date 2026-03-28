@@ -14,3 +14,6 @@ Target A2 work remaining:
 Run:
 - `npm install`
 - `npm start`
+
+Environment:
+- See `.env.example` for required DB and LLM variables
