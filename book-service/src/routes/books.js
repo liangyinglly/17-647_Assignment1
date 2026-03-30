@@ -3,7 +3,7 @@ const { pool } = require("../db");
 const { generateBookSummary } = require("../llm");
 
 const router = express.Router();
-const MIN_SUMMARY_LENGTH = 200;
+const DEFAULT_SUMMARY_TIMEOUT_MS = 5000;
 
 const REQUIRED_BOOK_FIELDS = [
   "ISBN",
@@ -70,43 +70,37 @@ function mapBookRow(row, includeSummary) {
   return payload;
 }
 
-async function updateSummaryAsync(book) {
-  try {
-    const summary = await generateBookSummary(book);
-    if (!summary) {
-      return;
-    }
+function fallbackSummary(title) {
+  return `Summary of ${title}`;
+}
 
-    await pool.execute("UPDATE books SET summary = ? WHERE ISBN = ?", [
-      summary,
-      book.ISBN
-    ]);
-  } catch (error) {
-    console.error("LLM summary update failed:", error.message);
+async function generateSummarySyncOrFallback(book) {
+  const timeoutMs = Number(process.env.SUMMARY_TIMEOUT_MS || DEFAULT_SUMMARY_TIMEOUT_MS);
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error("Summary generation timed out")), timeoutMs);
+  });
+
+  try {
+    const summary = await Promise.race([generateBookSummary(book), timeoutPromise]);
+    const normalized = typeof summary === "string" ? summary.trim() : "";
+    return normalized !== "" ? normalized : fallbackSummary(book.title);
+  } catch (_error) {
+    return fallbackSummary(book.title);
   }
 }
 
 async function ensureSummaryIfNeeded(row) {
-  const existingSummary = row.summary || "";
-  if (existingSummary.length >= MIN_SUMMARY_LENGTH) {
+  const existingSummary = typeof row.summary === "string" ? row.summary.trim() : "";
+  if (existingSummary !== "") {
+    row.summary = existingSummary;
     return existingSummary;
   }
 
-  const generated = await generateBookSummary({
-    ISBN: row.ISBN,
-    title: row.title,
-    Author: row.Author,
-    description: row.description,
-    genre: row.genre
-  });
+  const fallback = fallbackSummary(row.title);
+  await pool.execute("UPDATE books SET summary = ? WHERE ISBN = ?", [fallback, row.ISBN]);
+  row.summary = fallback;
 
-  if (generated && generated.length >= MIN_SUMMARY_LENGTH) {
-    await pool.execute("UPDATE books SET summary = ? WHERE ISBN = ?", [generated, row.ISBN]);
-    row.summary = generated;
-    return generated;
-  }
-
-  return existingSummary;
+  return fallback;
 }
 
 router.post("/", async (req, res, next) => {
@@ -127,6 +121,7 @@ router.post("/", async (req, res, next) => {
       price: Number(req.body.price),
       quantity: Number(req.body.quantity)
     };
+    const summary = await generateSummarySyncOrFallback(book);
 
     try {
       console.log("Attempting to insert book:", book); // Log the book being inserted
@@ -140,7 +135,7 @@ router.post("/", async (req, res, next) => {
           book.genre,
           book.price,
           book.quantity,
-          ""
+          summary
         ]
       );
     } catch (error) {
@@ -155,7 +150,6 @@ router.post("/", async (req, res, next) => {
     }
 
     console.log("Book successfully inserted:", book); // Log successful insertion
-    updateSummaryAsync(book);
 
     res
       .status(201)
@@ -195,16 +189,27 @@ router.put("/:isbn", async (req, res, next) => {
     if (existing.length === 0) {
       return res.sendStatus(404);
     }
+    const updatedBook = {
+      ISBN: pathIsbn,
+      title: String(req.body.title),
+      Author: String(req.body.Author),
+      description: String(req.body.description),
+      genre: String(req.body.genre),
+      price: Number(req.body.price),
+      quantity: Number(req.body.quantity)
+    };
+    const summary = await generateSummarySyncOrFallback(updatedBook);
 
     await pool.execute(
-      "UPDATE books SET title = ?, Author = ?, description = ?, genre = ?, price = ?, quantity = ? WHERE ISBN = ?",
+      "UPDATE books SET title = ?, Author = ?, description = ?, genre = ?, price = ?, quantity = ?, summary = ? WHERE ISBN = ?",
       [
-        String(req.body.title),
-        String(req.body.Author),
-        String(req.body.description),
-        String(req.body.genre),
-        Number(req.body.price),
-        Number(req.body.quantity),
+        updatedBook.title,
+        updatedBook.Author,
+        updatedBook.description,
+        updatedBook.genre,
+        updatedBook.price,
+        updatedBook.quantity,
+        summary,
         pathIsbn
       ]
     );
