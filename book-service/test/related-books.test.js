@@ -1,6 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { createRelatedBooksHandler } = require("../src/related-books-route");
+const { RecommendationTimeoutError } = require("../src/recommendations");
 
 function makeResponse() {
   return {
@@ -17,11 +18,16 @@ function makeResponse() {
     send(payload) {
       this.body = payload;
       return this;
+    },
+    sendStatus(code) {
+      this.statusCode = code;
+      this.body = undefined;
+      return this;
     }
   };
 }
 
-test("GET /books/:isbn/related-books handler returns 200 with JSON recommendations", async () => {
+test("GET /books/:isbn/related-books handler returns 200 with raw JSON array", async () => {
   const handler = createRelatedBooksHandler({
     fetchRelatedBooks: async () => [{ ISBN: "978-1" }]
   });
@@ -36,7 +42,7 @@ test("GET /books/:isbn/related-books handler returns 200 with JSON recommendatio
 
   assert.equal(nextError, null);
   assert.equal(res.statusCode, 200);
-  assert.deepEqual(res.body, { recommendations: [{ ISBN: "978-1" }] });
+  assert.deepEqual(res.body, [{ ISBN: "978-1" }]);
 });
 
 test("GET /books/:isbn/related-books handler returns 204 when no recommendations", async () => {
@@ -55,4 +61,23 @@ test("GET /books/:isbn/related-books handler returns 204 when no recommendations
   assert.equal(nextError, null);
   assert.equal(res.statusCode, 204);
   assert.equal(res.body, undefined);
+});
+
+test("GET /books/:isbn/related-books handler returns 504 on recommendation timeout", async () => {
+  const handler = createRelatedBooksHandler({
+    fetchRelatedBooks: async () => {
+      throw new RecommendationTimeoutError();
+    }
+  });
+
+  const req = { params: { isbn: "123" } };
+  const res = makeResponse();
+  let nextError = null;
+
+  await handler(req, res, (error) => {
+    nextError = error;
+  });
+
+  assert.equal(nextError, null);
+  assert.equal(res.statusCode, 504);
 });

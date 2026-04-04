@@ -2,6 +2,13 @@ function normalizeBaseUrl(value) {
   return String(value || "").trim().replace(/\/$/, "");
 }
 
+class RecommendationTimeoutError extends Error {
+  constructor(message = "Recommendation service request timed out") {
+    super(message);
+    this.name = "RecommendationTimeoutError";
+  }
+}
+
 function recommendationServiceBaseUrl() {
   return (
     normalizeBaseUrl(process.env.RECOMMENDATION_SERVICE_URL) ||
@@ -23,12 +30,28 @@ function extractRecommendations(payload) {
 
 async function fetchRelatedBooks(isbn, fetchImpl = fetch) {
   const targetUrl = `${recommendationServiceBaseUrl()}/books/${encodeURIComponent(isbn)}/related-books`;
-  const response = await fetchImpl(targetUrl, {
-    method: "GET",
-    headers: {
-      Accept: "application/json"
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, 3000);
+
+  let response;
+  try {
+    response = await fetchImpl(targetUrl, {
+      method: "GET",
+      headers: {
+        Accept: "application/json"
+      },
+      signal: controller.signal
+    });
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw new RecommendationTimeoutError();
     }
-  });
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (response.status === 204) {
     return [];
@@ -50,5 +73,6 @@ async function fetchRelatedBooks(isbn, fetchImpl = fetch) {
 
 module.exports = {
   fetchRelatedBooks,
-  extractRecommendations
+  extractRecommendations,
+  RecommendationTimeoutError
 };

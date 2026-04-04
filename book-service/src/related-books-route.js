@@ -1,4 +1,4 @@
-const { fetchRelatedBooks } = require("./recommendations");
+const { fetchRelatedBooks, RecommendationTimeoutError } = require("./recommendations");
 
 function createRelatedBooksHandler(deps = {}) {
   const fetcher = deps.fetchRelatedBooks || fetchRelatedBooks;
@@ -10,8 +10,11 @@ function createRelatedBooksHandler(deps = {}) {
       if (!Array.isArray(recommendations) || recommendations.length === 0) {
         return res.status(204).send();
       }
-      return res.status(200).json({ recommendations });
+      return res.status(200).json(recommendations);
     } catch (error) {
+      if (error instanceof RecommendationTimeoutError) {
+        return res.sendStatus(504);
+      }
       return next(error);
     }
   };
