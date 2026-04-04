@@ -117,7 +117,15 @@ function createPostCustomerHandler(deps = {}) {
         zipcode: customer.zipcode
       };
 
-      await publishEvent(payload);
+      try {
+        await publishEvent(payload);
+      } catch (publishError) {
+        console.error("Customer created but Kafka publish failed:", {
+          id: payload.id,
+          userId: payload.userId,
+          error: publishError?.message || String(publishError)
+        });
+      }
 
       return res
         .status(201)
