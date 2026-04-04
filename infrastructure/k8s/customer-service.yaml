@@ -36,6 +36,12 @@ spec:
               value: "true"
             - name: DB_TRUNCATE_ON_START
               value: "false"
+            - name: ANDREW_ID
+              value: "<andrew_id>"
+            - name: KAFKA_BROKERS
+              value: "<broker-1:9092,broker-2:9092>"
+            - name: KAFKA_TOPIC
+              value: ""
           livenessProbe:
             httpGet:
               path: /status

@@ -18,23 +18,23 @@ spec:
           image: crm-service:latest
           imagePullPolicy: Always
           env:
+            - name: ANDREW_ID
+              value: "<andrew_id>"
             - name: KAFKA_BROKERS
               value: "<broker-1:9092,broker-2:9092>"
+            - name: KAFKA_TOPIC
+              value: ""
             - name: KAFKA_CLIENT_ID
               value: "crm-service"
             - name: KAFKA_GROUP_ID
               value: "crm-service-group"
-            - name: KAFKA_TOPIC_CUSTOMER_EVT
-              value: "<andrew_id>.customer.evt"
             - name: SMTP_HOST
               value: "<smtp-host>"
             - name: SMTP_PORT
               value: "587"
-            - name: SMTP_SECURE
-              value: "false"
             - name: SMTP_USER
               value: "<smtp-user>"
-            - name: SMTP_PASSWORD
-              value: "<smtp-password>"
-            - name: SMTP_FROM
+            - name: SMTP_PASS
+              value: "<smtp-pass>"
+            - name: EMAIL_FROM
               value: "<from-email>"

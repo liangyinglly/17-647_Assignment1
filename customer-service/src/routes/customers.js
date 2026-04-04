@@ -1,7 +1,6 @@
 const express = require("express");
 const { pool } = require("../db");
-
-const router = express.Router();
+const { publishCustomerRegisteredEvent } = require("../customer-events");
 
 const REQUIRED_CUSTOMER_FIELDS = [
   "userId",
@@ -61,102 +60,130 @@ function mapCustomerRow(row) {
   };
 }
 
-router.post("/", async (req, res, next) => {
-  try {
-    if (!isValidCustomerPayload(req.body)) {
-      return res.status(400).json({ message: "Invalid or missing input." });
-    }
+function createPostCustomerHandler(deps = {}) {
+  const dbPool = deps.pool || pool;
+  const publishEvent = deps.publishCustomerRegisteredEvent || publishCustomerRegisteredEvent;
 
-    const customer = {
-      userId: String(req.body.userId),
-      name: String(req.body.name),
-      phone: String(req.body.phone),
-      address: String(req.body.address),
-      address2: hasOwn(req.body, "address2") ? String(req.body.address2) : "",
-      city: String(req.body.city),
-      state: String(req.body.state).toUpperCase(),
-      zipcode: String(req.body.zipcode)
-    };
+  return async function postCustomer(req, res, next) {
+    try {
+      if (!isValidCustomerPayload(req.body)) {
+        return res.status(400).json({ message: "Invalid or missing input." });
+      }
 
-    const [existing] = await pool.execute(
-      "SELECT id FROM customers WHERE userId = ?",
-      [customer.userId]
-    );
-    if (existing.length > 0) {
+      const customer = {
+        userId: String(req.body.userId),
+        name: String(req.body.name),
+        phone: String(req.body.phone),
+        address: String(req.body.address),
+        address2: hasOwn(req.body, "address2") ? String(req.body.address2) : "",
+        city: String(req.body.city),
+        state: String(req.body.state).toUpperCase(),
+        zipcode: String(req.body.zipcode)
+      };
+
+      const [existing] = await dbPool.execute(
+        "SELECT id FROM customers WHERE userId = ?",
+        [customer.userId]
+      );
+      if (existing.length > 0) {
+        return res
+          .status(422)
+          .json({ message: "This user ID already exists in the system." });
+      }
+
+      const [result] = await dbPool.execute(
+        "INSERT INTO customers (userId, name, phone, address, address2, city, state, zipcode) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        [
+          customer.userId,
+          customer.name,
+          customer.phone,
+          customer.address,
+          customer.address2,
+          customer.city,
+          customer.state,
+          customer.zipcode
+        ]
+      );
+
+      const payload = {
+        id: result.insertId,
+        userId: customer.userId,
+        name: customer.name,
+        phone: customer.phone,
+        address: customer.address,
+        address2: customer.address2,
+        city: customer.city,
+        state: customer.state,
+        zipcode: customer.zipcode
+      };
+
+      await publishEvent(payload);
+
       return res
-        .status(422)
-        .json({ message: "This user ID already exists in the system." });
+        .status(201)
+        .location(`${req.protocol}://${req.get("host")}/customers/${result.insertId}`)
+        .json(payload);
+    } catch (error) {
+      return next(error);
     }
+  };
+}
 
-    const [result] = await pool.execute(
-      "INSERT INTO customers (userId, name, phone, address, address2, city, state, zipcode) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-      [
-        customer.userId,
-        customer.name,
-        customer.phone,
-        customer.address,
-        customer.address2,
-        customer.city,
-        customer.state,
-        customer.zipcode
-      ]
-    );
+function createCustomersRouter(deps = {}) {
+  const router = express.Router();
+  const dbPool = deps.pool || pool;
 
-    const payload = {
-      id: result.insertId,
-      userId: customer.userId,
-      name: customer.name,
-      phone: customer.phone,
-      address: customer.address,
-      address2: customer.address2,
-      city: customer.city,
-      state: customer.state,
-      zipcode: customer.zipcode
-    };
+  router.post("/", createPostCustomerHandler({
+    pool: dbPool,
+    publishCustomerRegisteredEvent: deps.publishCustomerRegisteredEvent
+  }));
 
-    return res
-      .status(201)
-      .location(`${req.protocol}://${req.get("host")}/customers/${result.insertId}`)
-      .json(payload);
-  } catch (error) {
-    next(error);
-  }
-});
+  router.get("/:id", async (req, res, next) => {
+    try {
+      const id = Number(req.params.id);
+      if (!Number.isInteger(id) || id <= 0) {
+        return res.status(400).json({ message: "Invalid or missing input." });
+      }
 
-router.get("/:id", async (req, res, next) => {
-  try {
-    const id = Number(req.params.id);
-    if (!Number.isInteger(id) || id <= 0) {
-      return res.status(400).json({ message: "Invalid or missing input." });
+      const [rows] = await dbPool.execute("SELECT * FROM customers WHERE id = ?", [id]);
+      if (rows.length === 0) {
+        return res.sendStatus(404);
+      }
+
+      return res.status(200).json(mapCustomerRow(rows[0]));
+    } catch (error) {
+      return next(error);
     }
+  });
 
-    const [rows] = await pool.execute("SELECT * FROM customers WHERE id = ?", [id]);
-    if (rows.length === 0) {
-      return res.sendStatus(404);
+  router.get("/", async (req, res, next) => {
+    try {
+      const userId = req.query.userId;
+      if (
+        typeof userId !== "string" ||
+        userId.trim() === "" ||
+        !EMAIL_PATTERN.test(userId)
+      ) {
+        return res.status(400).json({ message: "Invalid or missing input." });
+      }
+
+      const [rows] = await dbPool.execute("SELECT * FROM customers WHERE userId = ?", [userId]);
+      if (rows.length === 0) {
+        return res.sendStatus(404);
+      }
+
+      return res.status(200).json(mapCustomerRow(rows[0]));
+    } catch (error) {
+      return next(error);
     }
+  });
 
-    return res.status(200).json(mapCustomerRow(rows[0]));
-  } catch (error) {
-    next(error);
-  }
-});
+  return router;
+}
 
-router.get("/", async (req, res, next) => {
-  try {
-    const userId = req.query.userId;
-    if (typeof userId !== "string" || userId.trim() === "" || !EMAIL_PATTERN.test(userId)) {
-      return res.status(400).json({ message: "Invalid or missing input." });
-    }
-
-    const [rows] = await pool.execute("SELECT * FROM customers WHERE userId = ?", [userId]);
-    if (rows.length === 0) {
-      return res.sendStatus(404);
-    }
-
-    return res.status(200).json(mapCustomerRow(rows[0]));
-  } catch (error) {
-    next(error);
-  }
-});
+const router = createCustomersRouter();
 
 module.exports = router;
+module.exports.createCustomersRouter = createCustomersRouter;
+module.exports.createPostCustomerHandler = createPostCustomerHandler;
+module.exports.isValidCustomerPayload = isValidCustomerPayload;
