@@ -31,7 +31,7 @@ spec:
             - name: DB_PASSWORD
               value: "<db-password>"
             - name: DB_NAME
-              value: "bookstore"
+              value: "customers_db"
             - name: DB_AUTO_INIT
               value: "true"
             - name: DB_TRUNCATE_ON_START
