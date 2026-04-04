@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: crm-service
+  namespace: bookstore-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: crm-service
+  template:
+    metadata:
+      labels:
+        app: crm-service
+    spec:
+      containers:
+        - name: crm-service
+          image: crm-service:latest
+          imagePullPolicy: Always
+          env:
+            - name: KAFKA_BROKERS
+              value: "<broker-1:9092,broker-2:9092>"
+            - name: KAFKA_CLIENT_ID
+              value: "crm-service"
+            - name: KAFKA_GROUP_ID
+              value: "crm-service-group"
+            - name: KAFKA_TOPIC_CUSTOMER_EVT
+              value: "<andrew_id>.customer.evt"
+            - name: SMTP_HOST
+              value: "<smtp-host>"
+            - name: SMTP_PORT
+              value: "587"
+            - name: SMTP_SECURE
+              value: "false"
+            - name: SMTP_USER
+              value: "<smtp-user>"
+            - name: SMTP_PASSWORD
+              value: "<smtp-password>"
+            - name: SMTP_FROM
+              value: "<from-email>"

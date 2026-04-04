@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: book-service
+  namespace: bookstore-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: book-service
+  template:
+    metadata:
+      labels:
+        app: book-service
+    spec:
+      containers:
+        - name: book-service
+          image: book-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+          env:
+            - name: PORT
+              value: "3000"
+            - name: DB_HOST
+              value: "<rds-endpoint>"
+            - name: DB_PORT
+              value: "3306"
+            - name: DB_USER
+              value: "<db-user>"
+            - name: DB_PASSWORD
+              value: "<db-password>"
+            - name: DB_NAME
+              value: "bookstore"
+            - name: DB_AUTO_INIT
+              value: "true"
+            - name: DB_TRUNCATE_ON_START
+              value: "false"
+            - name: LLM_PROVIDER
+              value: "none"
+            - name: GEMINI_API_KEY
+              value: ""
+            - name: GEMINI_MODEL
+              value: "gemini-2.5-flash"
+          livenessProbe:
+            httpGet:
+              path: /status
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: book-service
+  namespace: bookstore-ns
+spec:
+  type: ClusterIP
+  selector:
+    app: book-service
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000

@@ -1,6 +1,7 @@
 const express = require("express");
 const { pool } = require("../db");
 const { generateBookSummary } = require("../llm");
+const { createRelatedBooksHandler } = require("../related-books-route");
 
 const router = express.Router();
 const DEFAULT_SUMMARY_TIMEOUT_MS = 5000;
@@ -237,6 +238,8 @@ async function getBook(isbn, res, next) {
 router.get("/isbn/:isbn", async (req, res, next) => {
   return getBook(String(req.params.isbn), res, next);
 });
+
+router.get("/:isbn/related-books", createRelatedBooksHandler());
 
 router.get("/:isbn", async (req, res, next) => {
   return getBook(String(req.params.isbn), res, next);
