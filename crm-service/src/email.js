@@ -4,13 +4,22 @@ function buildActivationEmail(customer, env = process.env) {
     throw new Error("Missing ANDREW_ID.");
   }
 
-  const from = String(env.EMAIL_FROM || "").trim();
-  if (!from) {
-    throw new Error("Missing EMAIL_FROM.");
+  const smtpUser = String(env.SMTP_USER || "").trim();
+  const emailFrom = String(env.EMAIL_FROM || "").trim();
+
+  if (!smtpUser) {
+    throw new Error("Missing SMTP_USER.");
+  }
+
+  if (emailFrom && emailFrom !== smtpUser) {
+    console.warn("EMAIL_FROM does not match SMTP_USER; using SMTP_USER as sender.", {
+      emailFrom,
+      smtpUser
+    });
   }
 
   return {
-    from,
+    from: smtpUser,
     to: customer.userId,
     subject: "Activate your book store account",
     text: `Dear ${customer.name},\nWelcome to the Book store created by ${andrewId}.\nExceptionally this time we won’t ask you to click a link to activate your account.`
