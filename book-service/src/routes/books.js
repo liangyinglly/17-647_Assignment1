@@ -63,7 +63,7 @@ function mapBookRow(row, includeSummary) {
   const payload = {
     ISBN: row.ISBN,
     title: row.title,
-    Author: row.Author,
+    Author: String(row.Author ?? row.author ?? ""),
     description: row.description,
     genre: row.genre,
     price: roundPrice(row.price),
