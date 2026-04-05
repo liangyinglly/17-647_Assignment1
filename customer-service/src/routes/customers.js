@@ -86,9 +86,11 @@ function createPostCustomerHandler(deps = {}) {
         [customer.userId]
       );
       if (existing.length > 0) {
+        const [rows] = await dbPool.execute("SELECT * FROM customers WHERE id = ?", [existing[0].id]);
         return res
-          .status(422)
-          .json({ message: "This user ID already exists in the system." });
+          .status(201)
+          .location(`${req.protocol}://${req.get("host")}/customers/${existing[0].id}`)
+          .json(mapCustomerRow(rows[0]));
       }
 
       const [result] = await dbPool.execute(
