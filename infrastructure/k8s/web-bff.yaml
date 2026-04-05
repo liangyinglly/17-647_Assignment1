@@ -12,16 +12,21 @@ spec:
     metadata:
       labels:
         app: web-bff
+      annotations:
+        instrumentation.opentelemetry.io/inject-nodejs: "false"
+        sidecar.opentelemetry.io/inject: "false"
     spec:
       containers:
         - name: web-bff
-          image: book-store-web-bff:latest
+          image: 502612814580.dkr.ecr.us-east-1.amazonaws.com/web-bff:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 80
           env:
             - name: PORT
               value: "80"
+            - name: OTEL_SDK_DISABLED
+              value: "true"
             - name: CUSTOMER_SERVICE_URL
               value: "http://customer-service:3000"
             - name: BOOK_SERVICE_URL

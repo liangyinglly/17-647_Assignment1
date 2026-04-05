@@ -15,26 +15,26 @@ spec:
     spec:
       containers:
         - name: crm-service
-          image: crm-service:latest
+          image: 502612814580.dkr.ecr.us-east-1.amazonaws.com/crm-service:latest
           imagePullPolicy: Always
           env:
             - name: ANDREW_ID
-              value: "<andrew_id>"
+              value: "irish2"
             - name: KAFKA_BROKERS
-              value: "<broker-1:9092,broker-2:9092>"
+              value: "REPLACE_ME_KAFKA_BROKER_1:9092"
             - name: KAFKA_TOPIC
-              value: ""
+              value: "irish2.customer.evt"
             - name: KAFKA_CLIENT_ID
               value: "crm-service"
             - name: KAFKA_GROUP_ID
               value: "crm-service-group"
             - name: SMTP_HOST
-              value: "<smtp-host>"
+              value: "REPLACE_ME_SMTP_HOST"
             - name: SMTP_PORT
               value: "587"
             - name: SMTP_USER
-              value: "<smtp-user>"
+              value: "REPLACE_ME_SMTP_USER"
             - name: SMTP_PASS
-              value: "<smtp-pass>"
+              value: "REPLACE_ME_SMTP_PASS"
             - name: EMAIL_FROM
-              value: "<from-email>"
+              value: "irish2@andrew.cmu.edu"

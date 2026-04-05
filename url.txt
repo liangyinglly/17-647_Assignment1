@@ -1,1 +1,4 @@
-http://bookstore-dev-ExternalALB-2023280922.us-east-1.elb.amazonaws.com
+http://a795a7b97ac5741a19e7efda100301b7-1453998985.us-east-1.elb.amazonaws.com
+http://acd50badae4a548ffaa5e583d5ab286c-778527897.us-east-1.elb.amazonaws.com
+irish2
+irish2@andrew.cmu.edu

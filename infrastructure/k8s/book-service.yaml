@@ -12,24 +12,29 @@ spec:
     metadata:
       labels:
         app: book-service
+      annotations:
+        instrumentation.opentelemetry.io/inject-nodejs: "false"
+        sidecar.opentelemetry.io/inject: "false"
     spec:
       containers:
         - name: book-service
-          image: book-service:latest
+          image: 502612814580.dkr.ecr.us-east-1.amazonaws.com/book-service:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
           env:
             - name: PORT
               value: "3000"
+            - name: OTEL_SDK_DISABLED
+              value: "true"
             - name: DB_HOST
-              value: "<rds-endpoint>"
+              value: "bookstore-db-dev.cluster-cbkwtui28fxb.us-east-1.rds.amazonaws.com"
             - name: DB_PORT
               value: "3306"
             - name: DB_USER
-              value: "<db-user>"
+              value: "root"
             - name: DB_PASSWORD
-              value: "<db-password>"
+              value: "12345678"
             - name: DB_NAME
               value: "books_db"
             - name: DB_AUTO_INIT

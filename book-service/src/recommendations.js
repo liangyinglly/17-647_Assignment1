@@ -53,7 +53,7 @@ async function fetchRelatedBooks(isbn, fetchImpl = fetch) {
     clearTimeout(timeoutId);
   }
 
-  if (response.status === 204) {
+  if (response.status === 204 || response.status === 404) {
     return [];
   }
 
