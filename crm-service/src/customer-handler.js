@@ -14,7 +14,16 @@ async function handleCustomerRegisteredEvent(customer, deps = {}) {
   }
 
   const sender = deps.sendActivationEmail || sendActivationEmail;
-  await sender(customer, deps);
+  try {
+    await sender(customer, deps);
+    console.log("CRM activation email sent.", { userId: customer.userId });
+  } catch (error) {
+    console.error("CRM activation email send failed.", {
+      userId: customer.userId,
+      error: error?.message || String(error)
+    });
+    throw error;
+  }
 }
 
 module.exports = {

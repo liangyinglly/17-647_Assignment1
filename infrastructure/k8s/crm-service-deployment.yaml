@@ -21,7 +21,7 @@ spec:
             - name: ANDREW_ID
               value: "irish2"
             - name: KAFKA_BROKERS
-              value: "REPLACE_ME_KAFKA_BROKER_1:9092"
+              value: "98.88.99.206:9092,34.195.107.7:9092,54.221.160.63:9092"
             - name: KAFKA_TOPIC
               value: "irish2.customer.evt"
             - name: KAFKA_CLIENT_ID
@@ -29,12 +29,27 @@ spec:
             - name: KAFKA_GROUP_ID
               value: "crm-service-group"
             - name: SMTP_HOST
-              value: "REPLACE_ME_SMTP_HOST"
+              valueFrom:
+                secretKeyRef:
+                  name: smtp-secret
+                  key: SMTP_HOST
             - name: SMTP_PORT
-              value: "587"
+              valueFrom:
+                secretKeyRef:
+                  name: smtp-secret
+                  key: SMTP_PORT
             - name: SMTP_USER
-              value: "REPLACE_ME_SMTP_USER"
+              valueFrom:
+                secretKeyRef:
+                  name: smtp-secret
+                  key: SMTP_USER
             - name: SMTP_PASS
-              value: "REPLACE_ME_SMTP_PASS"
+              valueFrom:
+                secretKeyRef:
+                  name: smtp-secret
+                  key: SMTP_PASS
             - name: EMAIL_FROM
-              value: "irish2@andrew.cmu.edu"
+              valueFrom:
+                secretKeyRef:
+                  name: smtp-secret
+                  key: EMAIL_FROM

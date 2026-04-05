@@ -48,20 +48,34 @@ async function startCustomerConsumer(onCustomerRegistered, deps = {}) {
 
   const topic = deps.topic || resolveTopic(env);
   const groupId = String(env.KAFKA_GROUP_ID || "crm-service-group");
+  const brokers = resolveBrokers(env);
   const kafka = createKafka();
   const consumer = kafka.consumer({ groupId });
 
   await consumer.connect();
   await consumer.subscribe({ topic, fromBeginning: false });
+  console.log("CRM Kafka consumer connected.", { topic, groupId, brokers });
 
   await consumer.run({
     eachMessage: async ({ message }) => {
-      const raw = message.value ? message.value.toString("utf8") : "";
-      if (!raw) {
-        return;
+      try {
+        const raw = message.value ? message.value.toString("utf8") : "";
+        if (!raw) {
+          console.warn("CRM Kafka event received with empty payload.");
+          return;
+        }
+
+        const payload = JSON.parse(raw);
+        console.log("CRM customer event received.", {
+          userId: payload?.userId || "",
+          id: payload?.id || null
+        });
+        await onCustomerRegistered(payload);
+      } catch (error) {
+        console.error("CRM customer event handling failed:", {
+          error: error?.message || String(error)
+        });
       }
-      const payload = JSON.parse(raw);
-      await onCustomerRegistered(payload);
     }
   });
 

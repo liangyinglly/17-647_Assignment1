@@ -55,6 +55,10 @@ function isValidBookPayload(body) {
   return isValidPrice(body.price) && isValidQuantity(body.quantity);
 }
 
+function roundPrice(value) {
+  return Math.round(Number(value) * 100) / 100;
+}
+
 function mapBookRow(row, includeSummary) {
   const payload = {
     ISBN: row.ISBN,
@@ -62,7 +66,7 @@ function mapBookRow(row, includeSummary) {
     Author: row.Author,
     description: row.description,
     genre: row.genre,
-    price: Number(row.price),
+    price: roundPrice(row.price),
     quantity: row.quantity
   };
   if (includeSummary) {
@@ -163,7 +167,7 @@ router.post("/", async (req, res, next) => {
         Author: book.Author,
         description: book.description,
         genre: book.genre,
-        price: book.price,
+        price: roundPrice(book.price),
         quantity: book.quantity
       });
   } catch (error) {

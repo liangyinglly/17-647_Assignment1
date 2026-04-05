@@ -32,9 +32,15 @@ spec:
             - name: DB_PORT
               value: "3306"
             - name: DB_USER
-              value: "root"
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: DB_USER
             - name: DB_PASSWORD
-              value: "12345678"
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: DB_PASSWORD
             - name: DB_NAME
               value: "customers_db"
             - name: DB_AUTO_INIT
@@ -44,7 +50,7 @@ spec:
             - name: ANDREW_ID
               value: "irish2"
             - name: KAFKA_BROKERS
-              value: "REPLACE_ME_KAFKA_BROKER_1:9092"
+              value: "98.88.99.206:9092,34.195.107.7:9092,54.221.160.63:9092"
             - name: KAFKA_TOPIC
               value: "irish2.customer.evt"
           livenessProbe:
