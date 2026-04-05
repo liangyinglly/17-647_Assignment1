@@ -66,7 +66,7 @@ function maybeBody(req) {
 }
 
 function buildTargetUrl(req, serviceBase) {
-  return `${serviceBase}${req.originalUrl}`;
+  return `${serviceBase}${req.baseUrl}${req.url}`;
 }
 
 async function forwardRequest(req, res, serviceKind) {

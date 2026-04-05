@@ -219,8 +219,15 @@ router.put("/:isbn", async (req, res, next) => {
       ]
     );
 
-    const [rows] = await pool.execute("SELECT * FROM books WHERE ISBN = ?", [pathIsbn]);
-    return res.status(200).json(mapBookRow(rows[0], false));
+    return res.status(200).json({
+      ISBN: updatedBook.ISBN,
+      title: updatedBook.title,
+      Author: updatedBook.Author,
+      description: updatedBook.description,
+      genre: updatedBook.genre,
+      price: roundPrice(updatedBook.price),
+      quantity: updatedBook.quantity
+    });
   } catch (error) {
     next(error);
   }

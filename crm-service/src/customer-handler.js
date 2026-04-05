@@ -22,7 +22,6 @@ async function handleCustomerRegisteredEvent(customer, deps = {}) {
       userId: customer.userId,
       error: error?.message || String(error)
     });
-    throw error;
   }
 }
 
