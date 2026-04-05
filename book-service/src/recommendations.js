@@ -29,7 +29,7 @@ function extractRecommendations(payload) {
 }
 
 async function fetchRelatedBooks(isbn, fetchImpl = fetch) {
-  const targetUrl = `${recommendationServiceBaseUrl()}/books/${encodeURIComponent(isbn)}/related-books`;
+  const targetUrl = `${recommendationServiceBaseUrl()}/recommended-titles/isbn/${encodeURIComponent(isbn)}`;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => {
     controller.abort();
